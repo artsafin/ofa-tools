@@ -1,0 +1,93 @@
+p Please approve the following items to be included in:
+h3 #{invoice.invoiceDateYm()} Invoice
+
+table(border="0" cellpadding="2" cellspacing="0" width="80%" class="standart")
+    thead
+        tr
+            th(width=400) Item
+            th(width=100) Category
+            th(width=500) Comment
+            th RUB
+            th EUR
+    tbody
+        for group in expenses.byUser
+            for expense in group.expenses
+                tr
+                    td #{expense.subject}
+                    td #{expense.tag}
+                    td #{expense.planComment}
+                    td(align="right") #{expense.rubAmountRounded()}&nbsp;₽
+                    td(align="right") €&nbsp;#{expense.eurAmountRounded()}
+            tr
+                td
+                td
+                    b #{group.groupName}
+                td
+                td(align="right") #{group.totalRubRounded()}&nbsp;₽
+                td(align="right") €&nbsp;#{group.totalEurRounded()}
+        tr
+            td
+            td
+                b Expenses Total
+            td
+            td(align="right") #{expenses.subtotalRub}&nbsp;₽
+            td(align="right") €&nbsp;#{expenses.subtotalEur}
+        tr
+            td
+            td
+            td
+            td
+                b Return of rounding
+            td(align="right" style="color: red") €&nbsp;-#{expenses.returnOfRounding}
+        tr
+            td
+            td
+            td #{invoice.hours} hours
+            td
+                b Rounding
+            td(align="right") €&nbsp;#{expenses.wholeRounding}
+        tr
+            td
+            td
+            td
+            td
+                b Total
+            td(align="right") €&nbsp;#{expenses.totalEur}
+
+p
+    br
+    br
+
+h3 List of performed/started tasks
+
+details
+    summary More
+    p
+        b Total time: #{timesheet.totalHours} hours
+    p
+        b Dates: #{timesheet.params.from} &ndash; #{timesheet.params.to}
+    table(style="border:1px solid rgb(228, 228, 228); margin-bottom:4px;")
+        thead
+            tr
+                th(style="background-color:rgb(238, 238, 238); padding:4px; white-space:nowrap; text-align:left;") User
+                th(style="background-color:rgb(238, 238, 238); padding:4px; white-space:nowrap; text-align:left;") Issue
+                th(style="background-color:rgb(238, 238, 238); padding:4px; white-space:nowrap; text-align:left;") Time
+        tbody
+            for group in timesheet.byUser
+                tr(style="background-color:rgb(246, 247, 248); color:rgb(119, 119, 119);")
+                    td(style="padding:5px; text-align:left; vertical-align:top; border:1px solid rgb(215, 215, 215);") #{group.groupName}
+                    td(style="padding:5px; text-align:center; vertical-align:top; border:1px solid rgb(215, 215, 215);")
+                    td(style="padding:5px 0.5em 5px 5px; text-align:right; font-weight:bold; vertical-align:top; border:1px solid rgb(215, 215, 215); color:rgb(176, 176, 176);") #{group.totalSpent}
+                for st in group.entries
+                    tr(style="background-color:rgb(255, 255, 255);")
+                        td(style="padding:5px; text-align:center; vertical-align:top; border:1px solid rgb(215, 215, 215);")
+                        td(style="padding:5px; text-align:left; vertical-align:top; border:1px solid rgb(215, 215, 215);")
+                            a(href="#{redmine_host}/issues/#{st.issueId()}") #{st.issueTitle}
+                            span &nbsp;(#{st.spentOn})
+                        td(style="padding:5px 0.5em 5px 5px; text-align:right; font-weight:bold; vertical-align:top; border:1px solid rgb(215, 215, 215);") #{st.hours}
+            tr
+                th Total time
+                th
+                th #{timesheet.totalHours}
+
+p The signed invoice from my side is in attachment.

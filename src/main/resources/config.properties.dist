@@ -1,0 +1,14 @@
+airtable_app_id=
+airtable_token=
+
+invoice_folder=
+invoice_template_file=
+invoice_template_sheet=
+
+payslip_folder=
+payslip_template_file=
+payslip_template_sheet=
+
+redmine_url=https://redmine.com
+redmine_key=
+redmine_report_user_ids=1|2|3
