@@ -14,6 +14,12 @@ public class MonthlySalary {
     @Key("Days worked 2/2M")
     public int daysWorked2;
 
+    @Key("Net salary 1/2M")
+    private double netSalary1;
+
+    @Key("Net salary 2/2M")
+    private double netSalary2;
+
     @Key("Gross salary 1/2M")
     private double grossSalary1;
 
@@ -44,6 +50,14 @@ public class MonthlySalary {
 
     public long getGrossSalary2() {
         return Math.round(grossSalary2 * 100);
+    }
+
+    public long getNetSalary1() {
+        return Math.round(netSalary1 * 100);
+    }
+
+    public long getNetSalary2() {
+        return Math.round(netSalary2 * 100);
     }
 
     public long getGrossBonus1() {

@@ -7,11 +7,13 @@ public class Payslip {
         public final int daysWorked;
         private final long grossSalary;
         private final long grossBonus;
+        private final long netSalary;
 
-        public PayPeriod(int daysWorked, long grossSalary, long grossBonus) {
+        public PayPeriod(int daysWorked, long grossSalary, long grossBonus, long netSalary) {
             this.daysWorked = daysWorked;
             this.grossSalary = grossSalary;
             this.grossBonus = grossBonus;
+            this.netSalary = netSalary;
         }
 
         public boolean hasBonus() {
@@ -22,12 +24,16 @@ public class Payslip {
             return Currency.formatTwoPlacesComma((grossSalary - grossBonus) / 100.0);
         }
 
-        public String grossBonusFormatted() {
-            return Currency.formatTwoPlacesComma(grossBonus / 100.0);
+        public String netSalaryFormatted() {
+            return Currency.formatTwoPlacesComma(netSalary / 100.0);
         }
 
-        public String totalFormatted() {
-            return Currency.formatTwoPlacesComma(grossSalary / 100.0);
+        public double netSalary() {
+            return netSalary / 100.0;
+        }
+
+        public String grossBonusFormatted() {
+            return Currency.formatTwoPlacesComma(grossBonus / 100.0);
         }
 
         @Override
@@ -36,6 +42,7 @@ public class Payslip {
                     .add("daysWorked=" + daysWorked)
                     .add("grossSalary=" + grossSalary)
                     .add("grossBonus=" + grossBonus)
+                    .add("netSalary=" + netSalary)
                     .toString();
         }
     }
@@ -51,8 +58,8 @@ public class Payslip {
     public Payslip(Employee employee, MonthlySalary salary) {
         this.employee = employee;
         payslipNo = salary.payslipNo;
-        period1 = new PayPeriod(salary.daysWorked1, salary.getGrossSalary1(), salary.getGrossBonus1());
-        period2 = new PayPeriod(salary.daysWorked2, salary.getGrossSalary2(), salary.getGrossBonus2());
+        period1 = new PayPeriod(salary.daysWorked1, salary.getGrossSalary1(), salary.getGrossBonus1(), salary.getNetSalary1());
+        period2 = new PayPeriod(salary.daysWorked2, salary.getGrossSalary2(), salary.getGrossBonus2(), salary.getNetSalary2());
         tax = salary.getTax();
         traumatism = salary.getTraumatism();
         pension = salary.getPension();

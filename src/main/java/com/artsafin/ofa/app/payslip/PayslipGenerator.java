@@ -1,13 +1,12 @@
 package com.artsafin.ofa.app.payslip;
 
 import com.artsafin.ofa.Main;
+import com.artsafin.ofa.app.AirtableData;
 import com.artsafin.ofa.app.PayslipsLoadException;
-import com.artsafin.ofa.domain.*;
+import com.artsafin.ofa.domain.Payslip;
+import com.artsafin.ofa.domain.Result;
 import com.artsafin.ofa.utils.AppConfig;
-import com.artsafin.ofa.utils.airtable.AirtableApiClient;
 import com.artsafin.ofa.utils.airtable.AirtableLoadException;
-import com.artsafin.ofa.utils.airtable.AirtableRecord;
-import com.artsafin.ofa.utils.airtable.AirtableTable;
 import com.artsafin.ofa.utils.google.DriveService;
 import com.artsafin.ofa.utils.google.SheetId;
 import com.artsafin.ofa.utils.google.SpreadsheetsService;
@@ -19,8 +18,9 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.stream.Collectors.toList;
@@ -33,52 +33,18 @@ public class PayslipGenerator {
     private final SheetId templateSheet;
     private final AppConfig cfg;
     private final PrintStream out;
-    private final AirtableApiClient airtableApiClient;
+    private final AirtableData airtable;
     private final SpreadsheetsService spreadsheets;
     private final DriveService drive;
 
-    public PayslipGenerator(PrintStream out, AppConfig cfg, AirtableApiClient airtableApiClient, SpreadsheetsService spreadsheets, DriveService drive) {
+    public PayslipGenerator(PrintStream out, AppConfig cfg, AirtableData airtable, SpreadsheetsService spreadsheets, DriveService drive) {
         this.out = out;
-        this.airtableApiClient = airtableApiClient;
+        this.airtable = airtable;
         this.spreadsheets = spreadsheets;
         this.drive = drive;
         this.cfg = cfg;
 
         templateSheet = new SheetId(cfg.payslipTemplateFile(), cfg.payslipTemplateSheet());
-    }
-
-    private Stream<Result<String, Payslip>> loadPayslips(LocalDate date, String employeeName) throws AirtableLoadException {
-        String payslipDate = date.format(ofPattern("LLLL yyyy", Locale.US));
-
-        String formula = String.format("FIND('%s', Subject)", payslipDate);
-        if (employeeName != null) {
-            formula = String.format("AND(%s, FIND('%s', Subject))", formula, employeeName);
-        }
-
-        AirtableApiClient.Query salariesQuery = new AirtableApiClient.Query(cfg.airtableAppId())
-                .table("Monthly salaries").filterByFormula(formula);
-
-        AirtableTable<MonthlySalary> msTable = new AirtableTable<>(salariesQuery, airtableApiClient);
-        MonthlySalaryRecords ms = msTable.getRecords(MonthlySalaryRecords.class);
-
-        AirtableApiClient.Query emplQuery = new AirtableApiClient.Query(cfg.airtableAppId()).table("Employees");
-        AirtableTable<Employee> emplTable = new AirtableTable<>(emplQuery, airtableApiClient);
-
-        return ms.records.stream()
-                .filter((AirtableRecord<MonthlySalary> salary) -> salary.fields.payslipNo != 0)
-                .map((AirtableRecord<MonthlySalary> salary) -> {
-                    String personId = salary.fields.person.get(0);
-                    EmployeeRecord rec;
-
-                    try {
-                        rec = emplTable.getRecord(personId, EmployeeRecord.class);
-                    } catch (AirtableLoadException e) {
-                        return Result.<String, Payslip>ofError("Could not load employee record: " + personId);
-                    }
-
-                    return Result.<String, Payslip>ofResult(new Payslip(rec.fields, salary.fields));
-                })
-                .filter((Result<String, Payslip> pr) -> pr.map((p) -> p.employee.isEmploymentContract(), (p) -> true));
     }
 
     private SheetId createPayslipSheet(String title, LocalDate payslipDate, LocalDate paydayDate, Payslip payslip) throws IOException {
@@ -145,7 +111,7 @@ public class PayslipGenerator {
         LocalDate payslipDate = paydayDate.minusMonths(1);
         out.println("Fetching data for " + payslipDate.format(DATE_EN_MONTH) + ((args.employee != null) ? " and employee " + args.employee : ""));
 
-        List<Result<String, Payslip>> payslipsOrErrors = loadPayslips(payslipDate, args.employee).collect(toList());
+        List<Result<String, Payslip>> payslipsOrErrors = airtable.createPayslips(payslipDate, args.employee).collect(toList());
         List<String> loadErrors = Result.errorsOnly(payslipsOrErrors).collect(toList());
         if (loadErrors.size() > 0) {
             throw new PayslipsLoadException(loadErrors);

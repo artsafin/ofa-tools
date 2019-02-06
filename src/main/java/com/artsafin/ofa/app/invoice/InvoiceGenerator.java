@@ -1,15 +1,13 @@
 package com.artsafin.ofa.app.invoice;
 
 import com.artsafin.ofa.Main;
+import com.artsafin.ofa.app.AirtableData;
 import com.artsafin.ofa.app.AmbiguousInvoiceException;
 import com.artsafin.ofa.app.InvoiceNotFoundException;
 import com.artsafin.ofa.domain.Invoice;
-import com.artsafin.ofa.domain.InvoicesRecords;
 import com.artsafin.ofa.utils.AppConfig;
 import com.artsafin.ofa.utils.EnglishNumberToWords;
-import com.artsafin.ofa.utils.airtable.AirtableApiClient;
 import com.artsafin.ofa.utils.airtable.AirtableLoadException;
-import com.artsafin.ofa.utils.airtable.AirtableTable;
 import com.artsafin.ofa.utils.google.DriveService;
 import com.artsafin.ofa.utils.google.DriveService.Folder;
 import com.artsafin.ofa.utils.google.SheetId;
@@ -31,14 +29,14 @@ public class InvoiceGenerator {
     private final SheetId templateSheet;
     private final PrintStream out;
     private final AppConfig cfg;
-    private final AirtableApiClient airtableApiClient;
+    private final AirtableData airtable;
     private final SpreadsheetsService spreadsheets;
     private final DriveService drive;
 
-    public InvoiceGenerator(PrintStream out, AppConfig cfg, AirtableApiClient airtableApiClient, SpreadsheetsService spreadsheets, DriveService drive) {
+    public InvoiceGenerator(PrintStream out, AppConfig cfg, AirtableData airtable, SpreadsheetsService spreadsheets, DriveService drive) {
         this.out = out;
         this.cfg = cfg;
-        this.airtableApiClient = airtableApiClient;
+        this.airtable = airtable;
         this.spreadsheets = spreadsheets;
         this.drive = drive;
 
@@ -48,11 +46,11 @@ public class InvoiceGenerator {
     public void generateInvoice(final Main.CreateInvoiceArgs args) throws AirtableLoadException, AmbiguousInvoiceException, InvoiceNotFoundException, IOException {
         out.println("Generating invoice document by ID: " + args.invoiceIdPart);
 
-        Invoice invoice = findOneInvoice(args.invoiceIdPart);
+        Invoice invoice = airtable.findOneInvoice(args.invoiceIdPart);
 
         out.println("Found invoice: " + invoice.id);
 
-        String filename = invoice.filename + "-sp";
+        String filename = invoice.filename + "-ofa";
 
         SheetId newSheet = createNewInvoiceSheetFromTemplate(invoice, filename);
 
@@ -107,23 +105,5 @@ public class InvoiceGenerator {
         spreadsheets.updateValues(newSheet, values.build());
 
         return newSheet;
-    }
-
-    private Invoice findOneInvoice(String invoiceIdPart) throws AirtableLoadException, AmbiguousInvoiceException, InvoiceNotFoundException {
-        AirtableApiClient.Query searchByIdQuery = new AirtableApiClient.Query(cfg.airtableAppId())
-                .table("Invoices").filterByFormula(String.format("FIND('%s', No)", invoiceIdPart));
-
-        AirtableTable<Invoice> invoicesTable = new AirtableTable<>(searchByIdQuery, airtableApiClient);
-        InvoicesRecords invoices = invoicesTable.getRecords(InvoicesRecords.class);
-
-        if (invoices.records.size() > 1) {
-            String ids = invoices.records.stream().map((r) -> r.fields.id).collect(joining(", "));
-            throw new AmbiguousInvoiceException(invoiceIdPart, ids);
-        }
-        if (invoices.records.size() == 0) {
-            throw new InvoiceNotFoundException(invoiceIdPart);
-        }
-
-        return invoices.records.get(0).fields;
     }
 }

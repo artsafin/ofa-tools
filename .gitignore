@@ -5,4 +5,4 @@ build
 .idea
 src/main/resources/config.properties
 src/main/resources/client_id.json
-*-post.html
+/generated/

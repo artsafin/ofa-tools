@@ -1,11 +1,13 @@
 package com.artsafin.ofa;
 
+import com.artsafin.ofa.app.AirtableData;
 import com.artsafin.ofa.app.AmbiguousInvoiceException;
 import com.artsafin.ofa.app.PayslipsLoadException;
 import com.artsafin.ofa.app.approvalrequest.ApprovalRequestGenerator;
 import com.artsafin.ofa.app.invoice.InvoiceGenerator;
 import com.artsafin.ofa.app.InvoiceNotFoundException;
 import com.artsafin.ofa.app.payslip.PayslipGenerator;
+import com.artsafin.ofa.app.salary.SalaryRegistryGenerator;
 import com.artsafin.ofa.utils.AppConfig;
 import com.artsafin.ofa.utils.airtable.*;
 import com.artsafin.ofa.utils.google.*;
@@ -20,7 +22,7 @@ import java.time.format.DateTimeParseException;
 public class Main {
     private static final String APPLICATION_NAME = "Invoice Generator";
     private static final AppConfig cfg = new AppConfig();
-    private static AirtableApiClient airtableApiClient;
+    private static AirtableData airtable;
     private static SpreadsheetsService spreadsheets;
     private static DriveService drive;
     private static RedmineSpentTimeReport spentTimeReport;
@@ -30,6 +32,7 @@ public class Main {
     private static ApprovalRequestArgs jcCmdApprovalRequest = new ApprovalRequestArgs();
     private static CreateInvoiceArgs jcCmdCreateInvoice = new CreateInvoiceArgs();
     private static PayslipArgs jcCmdPayslip = new PayslipArgs();
+    private static SalaryRegistryArgs jcCmdSalaryReg = new SalaryRegistryArgs();
 
     @Parameters()
     private static class MainArgs {
@@ -66,14 +69,28 @@ public class Main {
         }
     }
 
+    @Parameters(commandDescription = "Generate salary registry to upload to bank", separators = "=")
+    public static class SalaryRegistryArgs {
+        @Parameter(names = "--date", required = true, description = "Date of month for which salary should be paid")
+        public String date;
+
+        @Parameter(names = "--period", required = true, description = "Period to generate registry for. Either 1 or 2.")
+        public int period;
+
+        public LocalDate getParsedDate() {
+            return LocalDate.parse(date);
+        }
+    }
+
     private static final String CMD_APPROVALREQ = "approvalreq";
     private static final String CMD_INVOICE = "invoice";
     private static final String CMD_PAYSLIP = "payslip";
+    private static final String CMD_SALARY_REG = "salary";
 
     static {
         try {
             cfg.load(Main.class.getClassLoader().getResourceAsStream("config.properties"));
-            airtableApiClient = new AirtableApiClient(cfg.airtableToken());
+            airtable = new AirtableData(cfg, new AirtableApiClient(cfg.airtableToken()));
             spentTimeReport = new RedmineSpentTimeReport(cfg.redmineUrl(), cfg.redmineKey());
 
             GoogleServiceFactory googleServiceFactory = new GoogleServiceFactory(APPLICATION_NAME);
@@ -85,6 +102,7 @@ public class Main {
                     .addCommand(CMD_APPROVALREQ, jcCmdApprovalRequest)
                     .addCommand(CMD_INVOICE, jcCmdCreateInvoice)
                     .addCommand(CMD_PAYSLIP, jcCmdPayslip)
+                    .addCommand(CMD_SALARY_REG, jcCmdSalaryReg)
                     .build();
         } catch (IOException | GeneralSecurityException e) {
             e.printStackTrace();
@@ -119,7 +137,7 @@ public class Main {
                 InvoiceGenerator app = new InvoiceGenerator(
                         System.out,
                         cfg,
-                        airtableApiClient,
+                        airtable,
                         spreadsheets,
                         drive
                 );
@@ -129,7 +147,7 @@ public class Main {
                 ApprovalRequestGenerator app = new ApprovalRequestGenerator(
                         System.out,
                         cfg,
-                        airtableApiClient,
+                        airtable,
                         spentTimeReport
                 );
                 app.generateApprovalRequest(jcCmdApprovalRequest);
@@ -138,11 +156,19 @@ public class Main {
                 PayslipGenerator app = new PayslipGenerator(
                         System.out,
                         cfg,
-                        airtableApiClient,
+                        airtable,
                         spreadsheets,
                         drive
                 );
                 app.generatePayslip(jcCmdPayslip);
+            }
+            if (jcargs.getParsedCommand().equals(CMD_SALARY_REG)) {
+                SalaryRegistryGenerator app = new SalaryRegistryGenerator(
+                        System.out,
+                        cfg,
+                        airtable
+                );
+                app.generateSalaryRegistry(jcCmdSalaryReg);
             }
         } catch (DateTimeParseException e) {
             System.err.println(e.getMessage());

@@ -11,16 +11,22 @@ public class Currency {
     private static DecimalFormat wholeFormat;
 
     static {
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols();
-        symbols.setGroupingSeparator(' ');
+        DecimalFormatSymbols dotSpace = new DecimalFormatSymbols();
+        dotSpace.setGroupingSeparator(' ');
+        dotSpace.setDecimalSeparator('.');
 
-        twoPlacesFormatDot = new DecimalFormat("#.##", symbols);
+        DecimalFormatSymbols comma = new DecimalFormatSymbols();
+        comma.setDecimalSeparator(',');
+
+        twoPlacesFormatDot = new DecimalFormat("#.00", dotSpace);
+        twoPlacesFormatDot.getDecimalFormatSymbols().setDecimalSeparator('.');
         setCommonParams(twoPlacesFormatDot);
 
-        twoPlacesFormatComma = new DecimalFormat("#,##", symbols);
-        setCommonParams(twoPlacesFormatComma);
+        twoPlacesFormatComma = new DecimalFormat("#.00", comma);
+        twoPlacesFormatComma.setRoundingMode(RoundingMode.HALF_UP);
+        twoPlacesFormatComma.setGroupingUsed(false);
 
-        wholeFormat = new DecimalFormat("#", symbols);
+        wholeFormat = new DecimalFormat("#", dotSpace);
         setCommonParams(wholeFormat);
     }
 

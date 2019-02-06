@@ -1,8 +1,21 @@
 package com.artsafin.ofa.utils;
 
+import java.io.File;
 import java.util.Properties;
 
 public class AppConfig extends Properties {
+    public String docDir() {
+        String dir = getProperty("doc_dir");
+
+        File f = new File(dir);
+
+        if (f.isFile() || !f.exists() && !f.mkdir()) {
+            throw new RuntimeException("Could not create a doc_dir at " + dir);
+        }
+
+        return dir;
+    }
+
     public String airtableAppId() {
         return getProperty("airtable_app_id");
     }

@@ -18,6 +18,7 @@ dependencies {
     compile 'de.neuland-bfi:jade4j:1.2.7'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-csv:2.9.8'
     compile "com.beust:jcommander:1.72"
+    compile "org.apache.poi:poi-ooxml:4.0.1"
 }
 
 jar {
