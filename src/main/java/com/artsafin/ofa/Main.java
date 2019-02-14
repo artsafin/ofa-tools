@@ -4,6 +4,7 @@ import com.artsafin.ofa.app.AirtableData;
 import com.artsafin.ofa.app.AmbiguousInvoiceException;
 import com.artsafin.ofa.app.PayslipsLoadException;
 import com.artsafin.ofa.app.approvalrequest.ApprovalRequestGenerator;
+import com.artsafin.ofa.app.checker.CheckerService;
 import com.artsafin.ofa.app.invoice.InvoiceGenerator;
 import com.artsafin.ofa.app.InvoiceNotFoundException;
 import com.artsafin.ofa.app.payslip.PayslipGenerator;
@@ -18,6 +19,8 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Main {
     private static final String APPLICATION_NAME = "Invoice Generator";
@@ -28,11 +31,7 @@ public class Main {
     private static RedmineSpentTimeReport spentTimeReport;
     private static JCommander jcargs;
 
-    private static MainArgs jcCmdMain = new MainArgs();
-    private static ApprovalRequestArgs jcCmdApprovalRequest = new ApprovalRequestArgs();
-    private static CreateInvoiceArgs jcCmdCreateInvoice = new CreateInvoiceArgs();
-    private static PayslipArgs jcCmdPayslip = new PayslipArgs();
-    private static SalaryRegistryArgs jcCmdSalaryReg = new SalaryRegistryArgs();
+    private static MainArgs mainArgs = new MainArgs();
 
     @Parameters()
     private static class MainArgs {
@@ -82,10 +81,13 @@ public class Main {
         }
     }
 
-    private static final String CMD_APPROVALREQ = "approvalreq";
-    private static final String CMD_INVOICE = "invoice";
-    private static final String CMD_PAYSLIP = "payslip";
-    private static final String CMD_SALARY_REG = "salary";
+    @Parameters(commandDescription = "Check validity of the accounting data", separators = "=")
+    public static class CheckerArgs {
+        @Parameter(names = "--employee", description = "Only check for employee with specified name")
+        public String employee;
+    }
+
+    private static final Map<String, Object> subcommands = new HashMap<>();
 
     static {
         try {
@@ -97,13 +99,16 @@ public class Main {
             spreadsheets = new SpreadsheetsService(googleServiceFactory);
             drive = new DriveService(googleServiceFactory);
 
-            jcargs = JCommander.newBuilder()
-                    .addObject(jcCmdMain)
-                    .addCommand(CMD_APPROVALREQ, jcCmdApprovalRequest)
-                    .addCommand(CMD_INVOICE, jcCmdCreateInvoice)
-                    .addCommand(CMD_PAYSLIP, jcCmdPayslip)
-                    .addCommand(CMD_SALARY_REG, jcCmdSalaryReg)
-                    .build();
+            subcommands.put("approvalreq", new ApprovalRequestArgs());
+            subcommands.put("invoice", new CreateInvoiceArgs());
+            subcommands.put("payslip", new PayslipArgs());
+            subcommands.put("salary", new SalaryRegistryArgs());
+            subcommands.put("check", new CheckerArgs());
+
+            JCommander.Builder builder = JCommander.newBuilder();
+            subcommands.forEach((key, value) -> builder.addCommand(key, value));
+            jcargs = builder.addObject(mainArgs).build();
+
         } catch (IOException | GeneralSecurityException e) {
             e.printStackTrace();
         }
@@ -125,15 +130,21 @@ public class Main {
             printUsageAndExit(e.getMessage(), 1);
         }
 
-        if (jcCmdMain.help) {
+        if (mainArgs.help) {
             printUsageAndExit(null, 0);
         }
         if (jcargs.getParsedCommand() == null) {
             printUsageAndExit("No command provided", 1);
         }
 
+        Object args = subcommands.get(jcargs.getParsedCommand());
+
+        if (args == null) {
+            printUsageAndExit("Invalid command provided", 1);
+        }
+
         try {
-            if (jcargs.getParsedCommand().equals(CMD_INVOICE)) {
+            if (args instanceof CreateInvoiceArgs) {
                 InvoiceGenerator app = new InvoiceGenerator(
                         System.out,
                         cfg,
@@ -141,18 +152,18 @@ public class Main {
                         spreadsheets,
                         drive
                 );
-                app.generateInvoice(jcCmdCreateInvoice);
+                app.generateInvoice((CreateInvoiceArgs) args);
             }
-            if (jcargs.getParsedCommand().equals(CMD_APPROVALREQ)) {
+            if (args instanceof ApprovalRequestArgs) {
                 ApprovalRequestGenerator app = new ApprovalRequestGenerator(
                         System.out,
                         cfg,
                         airtable,
                         spentTimeReport
                 );
-                app.generateApprovalRequest(jcCmdApprovalRequest);
+                app.generateApprovalRequest((ApprovalRequestArgs) args);
             }
-            if (jcargs.getParsedCommand().equals(CMD_PAYSLIP)) {
+            if (args instanceof PayslipArgs) {
                 PayslipGenerator app = new PayslipGenerator(
                         System.out,
                         cfg,
@@ -160,15 +171,23 @@ public class Main {
                         spreadsheets,
                         drive
                 );
-                app.generatePayslip(jcCmdPayslip);
+                app.generatePayslip((PayslipArgs) args);
             }
-            if (jcargs.getParsedCommand().equals(CMD_SALARY_REG)) {
+            if (args instanceof SalaryRegistryArgs) {
                 SalaryRegistryGenerator app = new SalaryRegistryGenerator(
                         System.out,
                         cfg,
                         airtable
                 );
-                app.generateSalaryRegistry(jcCmdSalaryReg);
+                app.generateSalaryRegistry((SalaryRegistryArgs) args);
+            }
+            if (args instanceof CheckerArgs) {
+                CheckerService app = new CheckerService(
+                        System.out,
+                        airtable,
+                        cfg
+                );
+                app.check((CheckerArgs) args);
             }
         } catch (DateTimeParseException e) {
             System.err.println(e.getMessage());

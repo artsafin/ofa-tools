@@ -23,6 +23,21 @@ public class AirtableData {
         this.airtableApiClient = airtableApiClient;
     }
 
+    public Stream<Employee> findActiveEmployees(String employeeName) throws AirtableLoadException {
+        AirtableApiClient.Query query = new AirtableApiClient.Query(cfg.airtableAppId()).table("Employees");
+
+        if (employeeName != null) {
+            query = query.filterByFormula(String.format("FIND('%s', {Name})", employeeName));
+        } else {
+            query = query.filterByFormula("{End date} = \"\"");
+        }
+
+        AirtableTable<Employee> table = new AirtableTable<>(query, airtableApiClient);
+        EmployeeRecords records = table.getRecords(EmployeeRecords.class);
+
+        return records.records.stream().map((atr) -> atr.fields);
+    }
+
     public Stream<Result<String, Payslip>> createPayslips(LocalDate date, String employeeName) throws AirtableLoadException {
         String payslipDate = date.format(ofPattern("LLLL yyyy", Locale.US));
 
