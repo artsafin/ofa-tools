@@ -58,8 +58,8 @@ public class Payslip {
     public Payslip(Employee employee, MonthlySalary salary) {
         this.employee = employee;
         payslipNo = salary.payslipNo;
-        period1 = new PayPeriod(salary.daysWorked1, salary.getGrossSalary1(), salary.getGrossBonus1(), salary.getNetSalary1());
-        period2 = new PayPeriod(salary.daysWorked2, salary.getGrossSalary2(), salary.getGrossBonus2(), salary.getNetSalary2());
+        period1 = new PayPeriod(salary.daysWorked1, salary.getGrossSalary1(), 0, salary.getNetSalary1());
+        period2 = new PayPeriod(salary.daysWorked2, salary.getGrossSalary2(), salary.getGrossCorr(), salary.getNetSalary2());
         tax = salary.getTax();
         traumatism = salary.getTraumatism();
         pension = salary.getPension();

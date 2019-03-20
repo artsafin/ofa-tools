@@ -26,16 +26,13 @@ public class MonthlySalary {
     @Key("Gross salary 2/2M")
     private double grossSalary2;
 
-    @Key("Gross bonus 1/2M")
-    private double grossBonus1;
+    @Key("Gross corr")
+    private double grossCorr;
 
-    @Key("Gross bonus 2/2M")
-    private double grossBonus2;
-
-    @Key("Funds 1M: traumatism")
+    @Key("Funds: traumatism")
     private double traumatism;
 
-    @Key("Funds 1M: Pension")
+    @Key("Funds: pension")
     private double pension;
 
     @Key("Payslip Ref")
@@ -60,12 +57,8 @@ public class MonthlySalary {
         return Math.round(netSalary2 * 100);
     }
 
-    public long getGrossBonus1() {
-        return Math.round(grossBonus1 * 100);
-    }
-
-    public long getGrossBonus2() {
-        return Math.round(grossBonus2 * 100);
+    public long getGrossCorr() {
+        return Math.round(grossCorr * 100);
     }
 
     public long getTraumatism() {
